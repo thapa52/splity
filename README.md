@@ -41,22 +41,63 @@
 
 This project follows **Clean Architecture** with three layers:
 
-    ```text
+    ```
     lib/
-    ├── core/                  # Shared utilities, constants, theme, errors
+    ├── core/
+    │   ├── constants/
+    │   ├── errors/
+    │   ├── extensions/
+    │   ├── theme/
+    │   ├── utils/
+    │   └── widgets/
     ├── features/
     │   ├── groups/
-    │   │   ├── data/          # Hive models, repositories implementation
-    │   │   ├── domain/        # Entities, repository interfaces, use cases
-    │   │   └── presentation/  # Riverpod providers, screens, widgets
+    │   │   ├── data/
+    │   │   │   ├── datasources/
+    │   │   │   ├── models/
+    │   │   │   └── repositories/
+    │   │   ├── domain/
+    │   │   │   ├── entities/
+    │   │   │   ├── repositories/
+    │   │   │   └── usecases/
+    │   │   └── presentation/
+    │   │       ├── providers/
+    │   │       ├── screens/
+    │   │       └── widgets/
     │   ├── expenses/
     │   │   ├── data/
+    │   │   │   ├── datasources/
+    │   │   │   ├── models/
+    │   │   │   └── repositories/
     │   │   ├── domain/
+    │   │   │   ├── entities/
+    │   │   │   ├── repositories/
+    │   │   │   └── usecases/
     │   │   └── presentation/
+    │   │       ├── providers/
+    │   │       ├── screens/
+    │   │       └── widgets/
     │   └── settlement/
     │       ├── data/
+    │       │   ├── datasources/
+    │       │   ├── models/
+    │       │   └── repositories/
     │       ├── domain/
+    │       │   ├── entities/
+    │       │   ├── repositories/
+    │       │   └── usecases/
     │       └── presentation/
+    │           ├── providers/
+    │           ├── screens/
+    │           └── widgets/
+    └── main.dart
+
+    test/
+    ├── features/
+    │   ├── groups/
+    │   ├── expenses/
+    │   └── settlement/
+    └── helpers/
     ```
 
 ---
@@ -68,7 +109,7 @@ number of transactions needed to settle all debts within a group.
 
 **Example:**
 
-    ```text
+    ```
     Alice owes Bob $10
     Bob owes Charlie $10
     → Instead of 2 transactions, algorithm finds:
