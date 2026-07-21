@@ -11,14 +11,23 @@ dependencies:
   flutter:
     sdk: flutter
 
-
-  # STATE MANAGEMEN
-  flutter_riverpod: ^3.1.0
-  riverpod_annotation: ^4.0.0
+  # STATE MANAGEMENT
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
 
   # NAVIGATION 
   go_router: ^17.0.0
-
+  
+  # LOCAL STORAGE
+  hive_flutter: ^1.1.0
+  
+  # CODE GENERATION
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+  
+  # UTILITIES 
+  uuid: ^4.6.0
+  
   # UI 
   cupertino_icons: ^1.0.8
   gap: ^3.0.1
@@ -29,12 +38,18 @@ dev_dependencies:
     sdk: flutter
 
   # CODE GENERATION
-  build_runner: ^2.7.1
-  riverpod_generator: ^4.0.0+1
-  
+  build_runner: ^2.5.4
+  riverpod_generator: ^2.6.3
+  freezed: ^2.5.7
+  json_serializable: ^6.9.0
+  hive_generator: ^2.0.1
+
   # LINTING 
   flutter_lints: ^5.0.0
 
+  # TESTING 
+  mocktail: ^1.0.5
+  
 flutter:
 
   uses-material-design: true
