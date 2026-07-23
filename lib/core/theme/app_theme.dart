@@ -110,7 +110,6 @@ abstract final class AppTheme {
       backgroundColor: AppColors.primary,
       foregroundColor: Colors.white,
       elevation: 4,
-      shape: CircleBorder(),
     ),
 
     // === BOTTOM NAVIGATION BAR ===
@@ -231,7 +230,6 @@ abstract final class AppTheme {
       backgroundColor: AppColors.primary,
       foregroundColor: Colors.white,
       elevation: 4,
-      shape: CircleBorder(),
     ),
 
     // === BOTTOM NAVIGATION BAR ===
