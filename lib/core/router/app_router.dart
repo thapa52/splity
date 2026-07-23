@@ -1,6 +1,8 @@
 import 'package:go_router/go_router.dart';
 
-import '../../features/groups/presentation/screens/home_screen.dart';
+import '../../features/groups/presentation/screens/create_group_screen.dart';
+import '../../features/groups/presentation/screens/group_detail_screen.dart';
+import '../../features/groups/presentation/screens/groups_screen.dart';
 
 /// Route path constants.
 ///
@@ -8,6 +10,8 @@ import '../../features/groups/presentation/screens/home_screen.dart';
 /// New routes are added here as features are built.
 abstract final class AppRoutes {
   static const String home = '/';
+  static const String createGroup = '/create-group';
+  static const String groupDetail = '/group/:groupId';
 }
 
 /// App router configuration using GoRouter.
@@ -21,7 +25,20 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.home,
       name: 'home',
-      builder: (context, state) => const HomeScreen(),
+      builder: (context, state) => const GroupsScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.createGroup,
+      name: 'createGroup',
+      builder: (context, state) => const CreateGroupScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.groupDetail,
+      name: 'groupDetail',
+      builder: (context, state) {
+        final groupId = state.pathParameters['groupId']!;
+        return GroupDetailScreen(groupId: groupId);
+      },
     ),
   ],
 );
