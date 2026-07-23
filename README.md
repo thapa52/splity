@@ -41,7 +41,6 @@
 
 This project follows **Clean Architecture** with three layers:
 
-    ```
     lib/
     ├── core/
     │   ├── constants/
@@ -98,7 +97,6 @@ This project follows **Clean Architecture** with three layers:
     │   ├── expenses/
     │   └── settlement/
     └── helpers/
-    ```
 
 ---
 
@@ -109,12 +107,10 @@ number of transactions needed to settle all debts within a group.
 
 **Example:**
 
-    ```
     Alice owes Bob $10
     Bob owes Charlie $10
     → Instead of 2 transactions, algorithm finds:
     → Alice pays Charlie $10 (1 transaction only)
-    ```
 
 The algorithm uses a **greedy approach with net balance calculation**:
 
@@ -235,9 +231,9 @@ Run with coverage:
 
 - [x] Project setup & Git workflow
 - [x] README & documentation
-- [ ] Folder structure & dependencies
-- [ ] Core theme & navigation
-- [ ] Group management feature
+- [x] Folder structure & dependencies
+- [x] Core theme & navigation
+- [x] Group management feature
 - [ ] Expense tracking feature
 - [ ] Settlement algorithm
 - [ ] Balance summary & charts
