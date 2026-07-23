@@ -10,9 +10,6 @@ String _$groupBoxHash() => r'6a23ac9d5be28f5801db58bb12f04bd0d769040d';
 
 /// Provides the Hive box for groups.
 ///
-/// The box must be opened before this provider is used.
-/// We open it in main.dart during app initialization.
-///
 /// Copied from [groupBox].
 @ProviderFor(groupBox)
 final groupBoxProvider = AutoDisposeProvider<Box<GroupModel>>.internal(
@@ -122,7 +119,7 @@ final deleteGroupProvider = AutoDisposeProvider<DeleteGroup>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef DeleteGroupRef = AutoDisposeProviderRef<DeleteGroup>;
-String _$groupNotifierHash() => r'9fe0bf428a9f58aed3aa737a597fea567af361bf';
+String _$groupNotifierHash() => r'a20cc6c64618ee71c321a3fcd8eb0fb6a87fcc78';
 
 /// Manages the state for the groups feature.
 ///

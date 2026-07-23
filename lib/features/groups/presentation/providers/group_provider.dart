@@ -52,9 +52,6 @@ class GroupState {
 // ===================================================================
 
 /// Provides the Hive box for groups.
-///
-/// The box must be opened before this provider is used.
-/// We open it in main.dart during app initialization.
 @riverpod
 Box<GroupModel> groupBox(Ref ref) {
   return Hive.box<GroupModel>(AppConstants.groupsBox);
@@ -110,19 +107,27 @@ DeleteGroup deleteGroup(Ref ref) {
 class GroupNotifier extends _$GroupNotifier {
   @override
   GroupState build() {
-    // Load groups when the notifier is first created
-    _loadGroups();
+    // Use Future.microtask to schedule load AFTER
+    // build() returns and state is fully initialized.
+    // Calling _loadGroups() directly here causes
+    // "uninitialized provider" error in Riverpod.
+    Future.microtask(() => _loadGroups());
     return const GroupState(isLoading: true);
   }
 
   /// Loads all groups from storage.
+  ///
+  /// Private — called from build() via microtask
+  /// and from refresh() after mutations.
   Future<void> _loadGroups() async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
-
     try {
       final useCase = ref.read(getGroupsProvider);
       final groups = await useCase();
-      state = state.copyWith(groups: groups, isLoading: false);
+      state = state.copyWith(
+        groups: groups,
+        isLoading: false,
+        errorMessage: null,
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -135,6 +140,7 @@ class GroupNotifier extends _$GroupNotifier {
   ///
   /// Called after creating or deleting a group.
   Future<void> refresh() async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
     await _loadGroups();
   }
 
