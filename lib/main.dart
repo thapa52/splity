@@ -5,6 +5,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'core/constants/app_constants.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/expenses/data/models/expense_model.dart';
+import 'features/expenses/data/models/expense_split_model.dart';
 import 'features/groups/data/models/group_model.dart';
 
 Future<void> main() async {
@@ -15,9 +17,12 @@ Future<void> main() async {
 
   // Register Hive adapters
   Hive.registerAdapter(GroupModelAdapter());
+  Hive.registerAdapter(ExpenseModelAdapter());
+  Hive.registerAdapter(ExpenseSplitModelAdapter());
 
   // Open Hive boxes
   await Hive.openBox<GroupModel>(AppConstants.groupsBox);
+  await Hive.openBox<ExpenseModel>(AppConstants.expensesBox);
 
   runApp(const ProviderScope(child: SplityApp()));
 }
