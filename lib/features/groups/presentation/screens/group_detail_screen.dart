@@ -4,17 +4,17 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../expenses/presentation/providers/expense_provider.dart';
+import '../../../expenses/presentation/widgets/expense_card.dart';
 import '../../domain/entities/group.dart';
 import '../providers/group_provider.dart';
 import '../widgets/member_chip.dart';
 
 /// Screen that displays detailed information about a group.
 ///
-/// Shows group name, emoji, description, members list,
-/// and action buttons for adding expenses and viewing settlement.
-///
-/// Will be expanded later when expense and settlement features are built.
+/// Shows group info, members, action buttons, and expenses list.
 class GroupDetailScreen extends ConsumerWidget {
   final String groupId;
 
@@ -23,9 +23,9 @@ class GroupDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final groupState = ref.watch(groupNotifierProvider);
+    final expenseState = ref.watch(expenseNotifierProvider(groupId));
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Find the group from the loaded groups list
     final group = groupState.groups.where((g) => g.id == groupId).firstOrNull;
 
     if (groupState.isLoading) {
@@ -104,21 +104,24 @@ class GroupDetailScreen extends ConsumerWidget {
           _buildActionButtons(context, group, isDark),
           const Gap(24),
 
-          // === EXPENSES PLACEHOLDER ===
-          _buildExpensesPlaceholder(isDark),
+          // === EXPENSES SECTION ===
+          _buildExpensesSection(context, ref, group, expenseState, isDark),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed:
+            () => context.push('/group/${group.id}/add-expense', extra: group),
+        child: const Icon(Icons.add_rounded),
       ),
     );
   }
 
-  /// Group header with emoji, name, and description.
   Widget _buildHeader(BuildContext context, Group group, bool isDark) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // === LARGE EMOJI ===
             Container(
               width: 80,
               height: 80,
@@ -130,8 +133,6 @@ class GroupDetailScreen extends ConsumerWidget {
               child: Text(group.emoji, style: const TextStyle(fontSize: 40)),
             ),
             const Gap(16),
-
-            // === GROUP NAME ===
             Text(
               group.name,
               style: AppTextStyles.h2.copyWith(
@@ -142,8 +143,6 @@ class GroupDetailScreen extends ConsumerWidget {
               ),
               textAlign: TextAlign.center,
             ),
-
-            // === DESCRIPTION ===
             if (group.description.isNotEmpty) ...[
               const Gap(8),
               Text(
@@ -157,10 +156,7 @@ class GroupDetailScreen extends ConsumerWidget {
                 textAlign: TextAlign.center,
               ),
             ],
-
             const Gap(12),
-
-            // === MEMBER COUNT & DATE ===
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -209,7 +205,6 @@ class GroupDetailScreen extends ConsumerWidget {
     );
   }
 
-  /// Members section with chips.
   Widget _buildMembersSection(BuildContext context, Group group, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,7 +227,6 @@ class GroupDetailScreen extends ConsumerWidget {
     );
   }
 
-  /// Action buttons for expenses and settlement.
   Widget _buildActionButtons(BuildContext context, Group group, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,26 +241,20 @@ class GroupDetailScreen extends ConsumerWidget {
         const Gap(12),
         Row(
           children: [
-            // === ADD EXPENSE BUTTON ===
             Expanded(
               child: _ActionCard(
                 icon: Icons.add_circle_outline_rounded,
                 label: 'Add Expense',
                 color: AppColors.primary,
                 isDark: isDark,
-                onTap: () {
-                  // Will navigate to add expense screen later
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Coming soon — Expense feature'),
+                onTap:
+                    () => context.push(
+                      '/group/${group.id}/add-expense',
+                      extra: group,
                     ),
-                  );
-                },
               ),
             ),
             const Gap(12),
-
-            // === VIEW SETTLEMENT BUTTON ===
             Expanded(
               child: _ActionCard(
                 icon: Icons.account_balance_wallet_outlined,
@@ -274,7 +262,6 @@ class GroupDetailScreen extends ConsumerWidget {
                 color: AppColors.secondary,
                 isDark: isDark,
                 onTap: () {
-                  // Will navigate to settlement screen later
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Coming soon — Settlement feature'),
@@ -289,48 +276,142 @@ class GroupDetailScreen extends ConsumerWidget {
     );
   }
 
-  /// Placeholder for expenses list.
-  Widget _buildExpensesPlaceholder(bool isDark) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
+  Widget _buildExpensesSection(
+    BuildContext context,
+    WidgetRef ref,
+    Group group,
+    ExpenseState expenseState,
+    bool isDark,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // === HEADER ROW ===
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(
-              Icons.receipt_long_outlined,
-              size: 48,
-              color:
-                  isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
-            ),
-            const Gap(12),
             Text(
-              'No expenses yet',
-              style: AppTextStyles.labelLarge.copyWith(
+              'Expenses',
+              style: AppTextStyles.h3.copyWith(
                 color:
                     isDark
                         ? AppColors.textPrimaryDark
                         : AppColors.textPrimaryLight,
               ),
             ),
-            const Gap(4),
-            Text(
-              'Add your first expense to start tracking',
-              style: AppTextStyles.bodySmall.copyWith(
-                color:
-                    isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondaryLight,
+            if (expenseState.hasExpenses)
+              Text(
+                'Total: ${AppConstants.currency}${expenseState.totalAmount.toStringAsFixed(2)}',
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: AppColors.primary,
+                ),
               ),
-            ),
           ],
         ),
-      ),
+        const Gap(12),
+
+        // === LOADING STATE ===
+        if (expenseState.isLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        // === ERROR STATE ===
+        else if (expenseState.hasError)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    size: 48,
+                    color: AppColors.error,
+                  ),
+                  const Gap(12),
+                  Text(
+                    expenseState.errorMessage ?? 'Something went wrong',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color:
+                          isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const Gap(16),
+                  ElevatedButton.icon(
+                    onPressed:
+                        () =>
+                            ref
+                                .read(expenseNotifierProvider(groupId).notifier)
+                                .refresh(),
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Try Again'),
+                  ),
+                ],
+              ),
+            ),
+          )
+        // === EMPTY STATE ===
+        else if (!expenseState.hasExpenses)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.receipt_long_outlined,
+                    size: 48,
+                    color:
+                        isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
+                  ),
+                  const Gap(12),
+                  Text(
+                    'No expenses yet',
+                    style: AppTextStyles.labelLarge.copyWith(
+                      color:
+                          isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                  const Gap(4),
+                  Text(
+                    'Add your first expense to start tracking',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color:
+                          isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        // === EXPENSES LIST ===
+        else
+          ...expenseState.expenses.map(
+            (expense) => ExpenseCard(
+              expense: expense,
+              onTap:
+                  () => context.push('/group/$groupId/expense/${expense.id}'),
+              onDelete: () async {
+                await ref
+                    .read(expenseNotifierProvider(groupId).notifier)
+                    .removeExpense(expense.id);
+              },
+            ),
+          ),
+      ],
     );
   }
 
-  /// Shows delete confirmation dialog.
   Future<void> _showDeleteDialog(
     BuildContext context,
     WidgetRef ref,
@@ -379,7 +460,6 @@ class GroupDetailScreen extends ConsumerWidget {
     }
   }
 
-  /// Formats DateTime to readable string.
   String _formatDate(DateTime date) {
     final months = [
       'Jan',
@@ -399,7 +479,6 @@ class GroupDetailScreen extends ConsumerWidget {
   }
 }
 
-/// A tappable action card with icon and label.
 class _ActionCard extends StatelessWidget {
   final IconData icon;
   final String label;
