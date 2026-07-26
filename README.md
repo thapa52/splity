@@ -234,7 +234,7 @@ Run with coverage:
 - [x] Folder structure & dependencies
 - [x] Core theme & navigation
 - [x] Group management feature
-- [ ] Expense tracking feature
+- [x] Expense tracking feature
 - [ ] Settlement algorithm
 - [ ] Balance summary & charts
 - [ ] Share summary feature
