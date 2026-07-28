@@ -261,13 +261,7 @@ class GroupDetailScreen extends ConsumerWidget {
                 label: 'Settlement',
                 color: AppColors.secondary,
                 isDark: isDark,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Coming soon — Settlement feature'),
-                    ),
-                  );
-                },
+                onTap: () => context.push('/group/${group.id}/settlement'),
               ),
             ),
           ],
