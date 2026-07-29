@@ -5,6 +5,7 @@ import '../../features/expenses/presentation/screens/expense_detail_screen.dart'
 import '../../features/groups/presentation/screens/create_group_screen.dart';
 import '../../features/groups/presentation/screens/group_detail_screen.dart';
 import '../../features/groups/presentation/screens/groups_screen.dart';
+import '../../features/settlement/presentation/screens/settlement_screen.dart';
 
 /// Route path constants.
 ///
@@ -16,6 +17,7 @@ abstract final class AppRoutes {
   static const String groupDetail = '/group/:groupId';
   static const String addExpense = '/group/:groupId/add-expense';
   static const String expenseDetail = '/group/:groupId/expense/:expenseId';
+  static const String settlement = '/group/:groupId/settlement';
 }
 
 /// App router configuration using GoRouter.
@@ -59,6 +61,14 @@ final GoRouter appRouter = GoRouter(
         final groupId = state.pathParameters['groupId']!;
         final expenseId = state.pathParameters['expenseId']!;
         return ExpenseDetailScreen(groupId: groupId, expenseId: expenseId);
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.settlement,
+      name: 'settlement',
+      builder: (context, state) {
+        final groupId = state.pathParameters['groupId']!;
+        return SettlementScreen(groupId: groupId);
       },
     ),
   ],

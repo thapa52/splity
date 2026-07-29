@@ -235,7 +235,7 @@ Run with coverage:
 - [x] Core theme & navigation
 - [x] Group management feature
 - [x] Expense tracking feature
-- [ ] Settlement algorithm
+- [x] Settlement algorithm
 - [ ] Balance summary & charts
 - [ ] Share summary feature
 - [ ] Unit tests
