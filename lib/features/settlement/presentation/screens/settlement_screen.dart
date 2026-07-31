@@ -5,8 +5,11 @@ import 'package:gap/gap.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../expenses/presentation/providers/expense_provider.dart';
 import '../providers/settlement_provider.dart';
+import '../widgets/balance_bar_chart.dart';
 import '../widgets/balance_card.dart';
+import '../widgets/category_pie_chart.dart';
 import '../widgets/settlement_card.dart';
 
 /// Screen that shows the settlement summary for a group.
@@ -23,15 +26,21 @@ class SettlementScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(settlementNotifierProvider(groupId));
+    final expenseState = ref.watch(expenseNotifierProvider(groupId));
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settlement')),
-      body: _buildBody(context, state, isDark),
+      body: _buildBody(context, state, expenseState, isDark),
     );
   }
 
-  Widget _buildBody(BuildContext context, SettlementState state, bool isDark) {
+  Widget _buildBody(
+    BuildContext context,
+    SettlementState state,
+    ExpenseState expenseState,
+    bool isDark,
+  ) {
     // === LOADING ===
     if (state.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -116,6 +125,14 @@ class SettlementScreen extends ConsumerWidget {
       children: [
         // === STATUS BANNER ===
         _buildStatusBanner(state, isDark),
+        const Gap(16),
+
+        // === BALANCE BAR CHART ===
+        BalanceBarChart(netBalances: state.netBalances),
+        const Gap(16),
+
+        // === CATEGORY PIE CHART ===
+        CategoryPieChart(expenses: expenseState.expenses),
         const Gap(24),
 
         // === NET BALANCES ===
@@ -124,6 +141,7 @@ class SettlementScreen extends ConsumerWidget {
 
         // === SETTLEMENTS ===
         _buildSettlementsSection(state, isDark),
+        const Gap(24),
       ],
     );
   }

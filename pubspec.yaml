@@ -33,6 +33,9 @@ dependencies:
   gap: ^3.0.1
   google_fonts: ^6.3.2
 
+  # CHARTS 
+  fl_chart: 0.69.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
