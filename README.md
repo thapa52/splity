@@ -237,7 +237,7 @@ Run with coverage:
 - [x] Expense tracking feature
 - [x] Settlement algorithm
 - [x] Balance summary & charts
-- [ ] Share summary feature
+- [x] Share summary feature
 - [ ] Unit tests
 - [ ] UI polish & animations
 
