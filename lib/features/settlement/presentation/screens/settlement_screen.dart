@@ -5,7 +5,9 @@ import 'package:gap/gap.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/utils/share_service.dart';
 import '../../../expenses/presentation/providers/expense_provider.dart';
+import '../../../groups/presentation/providers/group_provider.dart';
 import '../providers/settlement_provider.dart';
 import '../widgets/balance_bar_chart.dart';
 import '../widgets/balance_card.dart';
@@ -17,7 +19,8 @@ import '../widgets/settlement_card.dart';
 /// Displays:
 /// - Net balance for each member
 /// - Minimum transactions needed to settle all debts
-/// - All settled state when no debts exist
+/// - Charts for visual representation
+/// - Share button to send summary via WhatsApp/SMS
 class SettlementScreen extends ConsumerWidget {
   final String groupId;
 
@@ -30,7 +33,20 @@ class SettlementScreen extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settlement')),
+      appBar: AppBar(
+        title: const Text('Settlement'),
+        actions: [
+          if (!state.isLoading &&
+              !state.hasError &&
+              state.netBalances.isNotEmpty)
+            IconButton(
+              onPressed:
+                  () => _shareSettlement(context, ref, state, expenseState),
+              icon: const Icon(Icons.share_rounded),
+              tooltip: 'Share Summary',
+            ),
+        ],
+      ),
       body: _buildBody(context, state, expenseState, isDark),
     );
   }
@@ -269,5 +285,40 @@ class SettlementScreen extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _shareSettlement(
+    BuildContext context,
+    WidgetRef ref,
+    SettlementState state,
+    ExpenseState expenseState,
+  ) async {
+    try {
+      final group =
+          ref
+              .read(groupNotifierProvider)
+              .groups
+              .where((g) => g.id == groupId)
+              .firstOrNull;
+
+      if (group == null) return;
+
+      const shareService = ShareService();
+      await shareService.shareSettlementSummary(
+        group: group,
+        netBalances: state.netBalances,
+        settlements: state.settlements,
+        totalExpenses: expenseState.totalAmount,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to share summary'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 }
