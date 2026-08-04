@@ -238,7 +238,8 @@ Run with coverage:
 - [x] Settlement algorithm
 - [x] Balance summary & charts
 - [x] Share summary feature
-- [ ] Unit tests
+- [x] Theme toggle (light/dark mode)
+- [ ] Additional unit tests
 - [ ] UI polish & animations
 
 ---

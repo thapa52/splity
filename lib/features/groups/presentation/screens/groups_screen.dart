@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/theme/theme_provider.dart';
 import '../providers/group_provider.dart';
 import '../widgets/group_card.dart';
 
@@ -26,6 +27,27 @@ class GroupsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Splity'),
         actions: [
+          // === THEME TOGGLE ===
+          Consumer(
+            builder: (context, ref, _) {
+              final themeMode = ref.watch(themeNotifierProvider);
+              final isDark =
+                  themeMode == ThemeMode.dark ||
+                  (themeMode == ThemeMode.system &&
+                      MediaQuery.platformBrightnessOf(context) ==
+                          Brightness.dark);
+
+              return IconButton(
+                icon: Icon(
+                  isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                ),
+                onPressed:
+                    () =>
+                        ref.read(themeNotifierProvider.notifier).toggleTheme(),
+                tooltip: isDark ? 'Switch to Light' : 'Switch to Dark',
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.info_outline_rounded),
             onPressed: () => _showAboutDialog(context),
