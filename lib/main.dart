@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'core/constants/app_constants.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 import 'features/expenses/data/models/expense_model.dart';
 import 'features/expenses/data/models/expense_split_model.dart';
 import 'features/groups/data/models/group_model.dart';
@@ -29,19 +30,20 @@ Future<void> main() async {
 
 /// Root widget for Splity.
 ///
-/// Wrapped in [ProviderScope] for Riverpod state management.
-/// Uses [GoRouter] for navigation and custom [AppTheme] for styling.
-class SplityApp extends StatelessWidget {
+/// Watches [ThemeNotifier] for dynamic theme switching.
+class SplityApp extends ConsumerWidget {
   const SplityApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeNotifierProvider);
+
     return MaterialApp.router(
       title: 'Splity',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
       routerConfig: appRouter,
     );
   }
