@@ -16,6 +16,33 @@ class MockGroupRepository extends Mock implements GroupRepository {}
 class MockExpenseRepository extends Mock implements ExpenseRepository {}
 
 // ===================================================================
+// FAKES — Required by mocktail for registerFallbackValue
+// ===================================================================
+
+class FakeGroup extends Fake implements Group {}
+
+class FakeExpense extends Fake implements Expense {}
+
+class FakeExpenseSplit extends Fake implements ExpenseSplit {}
+
+// ===================================================================
+// REGISTER FALLBACKS — Call this in setUpAll in every test file
+// ===================================================================
+
+/// Must be called in setUpAll() before using any() with custom types.
+///
+/// ```dart
+/// setUpAll(() {
+///   registerFallbackValues();
+/// });
+/// ```
+void registerFallbackValues() {
+  registerFallbackValue(FakeGroup());
+  registerFallbackValue(FakeExpense());
+  registerFallbackValue(FakeExpenseSplit());
+}
+
+// ===================================================================
 // TEST DATA FACTORIES
 // ===================================================================
 
