@@ -239,7 +239,7 @@ Run with coverage:
 - [x] Balance summary & charts
 - [x] Share summary feature
 - [x] Theme toggle (light/dark mode)
-- [ ] Additional unit tests
+- [x] Unit tests (47 tests passing)
 - [ ] UI polish & animations
 
 ---
