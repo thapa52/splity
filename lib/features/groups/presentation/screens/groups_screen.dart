@@ -4,17 +4,20 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/error_widget.dart';
+import '../../../../core/widgets/loading_widget.dart';
 import '../providers/group_provider.dart';
 import '../widgets/group_card.dart';
 
 /// Home screen that displays all groups.
 ///
-/// Shows a list of group cards with swipe-to-delete.
-/// FAB navigates to create group screen.
-/// Empty state shown when no groups exist.
+/// Shows a summary stats card, list of group cards,
+/// and handles loading, error, and empty states.
 class GroupsScreen extends ConsumerWidget {
   const GroupsScreen({super.key});
 
@@ -25,13 +28,20 @@ class GroupsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Splity'),
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('💸', style: TextStyle(fontSize: 22)),
+            Gap(8),
+            Text('Splity'),
+          ],
+        ),
         actions: [
           // === THEME TOGGLE ===
           Consumer(
             builder: (context, ref, _) {
               final themeMode = ref.watch(themeNotifierProvider);
-              final isDark =
+              final isDarkMode =
                   themeMode == ThemeMode.dark ||
                   (themeMode == ThemeMode.system &&
                       MediaQuery.platformBrightnessOf(context) ==
@@ -39,12 +49,14 @@ class GroupsScreen extends ConsumerWidget {
 
               return IconButton(
                 icon: Icon(
-                  isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  isDarkMode
+                      ? Icons.light_mode_rounded
+                      : Icons.dark_mode_rounded,
                 ),
                 onPressed:
                     () =>
                         ref.read(themeNotifierProvider.notifier).toggleTheme(),
-                tooltip: isDark ? 'Switch to Light' : 'Switch to Dark',
+                tooltip: isDarkMode ? 'Switch to Light' : 'Switch to Dark',
               );
             },
           ),
@@ -69,127 +81,121 @@ class GroupsScreen extends ConsumerWidget {
     GroupState state,
     bool isDark,
   ) {
-    // === LOADING STATE ===
     if (state.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingWidget(message: 'Loading groups...');
     }
 
-    // === ERROR STATE ===
     if (state.hasError) {
-      return _buildErrorState(context, ref, state, isDark);
+      return AppErrorWidget(
+        message: state.errorMessage ?? 'Failed to load groups',
+        onRetry: () => ref.read(groupNotifierProvider.notifier).refresh(),
+      );
     }
 
-    // === EMPTY STATE ===
     if (!state.hasGroups) {
-      return _buildEmptyState(isDark);
+      return EmptyStateWidget(
+        icon: Icons.group_outlined,
+        title: 'No groups yet',
+        subtitle:
+            'Create your first group to start\nsplitting expenses with friends!',
+        buttonLabel: 'Create Group',
+        onButtonPressed: () => context.push(AppRoutes.createGroup),
+      );
     }
 
-    // === GROUPS LIST ===
-    return _buildGroupsList(context, ref, state);
-  }
-
-  Widget _buildErrorState(
-    BuildContext context,
-    WidgetRef ref,
-    GroupState state,
-    bool isDark,
-  ) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline_rounded,
-              size: 64,
-              color: AppColors.error,
-            ),
-            const Gap(16),
-            Text(
-              state.errorMessage ?? 'Something went wrong',
-              style: AppTextStyles.bodyLarge.copyWith(
-                color:
-                    isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondaryLight,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const Gap(24),
-            ElevatedButton.icon(
-              onPressed:
-                  () => ref.read(groupNotifierProvider.notifier).refresh(),
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Try Again'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(bool isDark) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.group_outlined,
-              size: 80,
-              color: AppColors.primary.withValues(alpha: 0.5),
-            ),
-            const Gap(16),
-            Text(
-              'No groups yet',
-              style: AppTextStyles.h3.copyWith(
-                color:
-                    isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimaryLight,
-              ),
-            ),
-            const Gap(8),
-            Text(
-              'Create your first group to start\nsplitting expenses with friends!',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color:
-                    isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondaryLight,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGroupsList(
-    BuildContext context,
-    WidgetRef ref,
-    GroupState state,
-  ) {
     return RefreshIndicator(
       onRefresh: () => ref.read(groupNotifierProvider.notifier).refresh(),
-      child: ListView.builder(
-        padding: const EdgeInsets.only(
-          top: 8,
-          bottom: 100, // Space for FAB
-        ),
-        itemCount: state.groups.length,
-        itemBuilder: (context, index) {
-          final group = state.groups[index];
-          return GroupCard(
-            group: group,
-            onTap: () => context.push('/group/${group.id}'),
-            onDelete: () => _deleteGroup(context, ref, group.id),
-          );
-        },
+      child: CustomScrollView(
+        slivers: [
+          // === STATS SUMMARY CARD ===
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: _buildStatsCard(state, isDark),
+            ),
+          ),
+
+          // === GROUPS LIST ===
+          SliverList(
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final group = state.groups[index];
+              return GroupCard(
+                group: group,
+                onTap: () => context.push('/group/${group.id}'),
+                onDelete: () => _deleteGroup(context, ref, group.id),
+              );
+            }, childCount: state.groups.length),
+          ),
+
+          // === BOTTOM PADDING FOR FAB ===
+          const SliverToBoxAdapter(child: Gap(100)),
+        ],
       ),
+    );
+  }
+
+  Widget _buildStatsCard(GroupState state, bool isDark) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildStatItem(
+                label: 'Groups',
+                value: '${state.groups.length}',
+                icon: Icons.group_rounded,
+                color: AppColors.primary,
+                isDark: isDark,
+              ),
+            ),
+            Container(
+              width: 1,
+              height: 40,
+              color: (isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight)
+                  .withValues(alpha: 0.2),
+            ),
+            Expanded(
+              child: _buildStatItem(
+                label: 'Members',
+                value:
+                    '${state.groups.fold<int>(0, (sum, g) => sum + g.members.length)}',
+                icon: Icons.people_rounded,
+                color: AppColors.secondary,
+                isDark: isDark,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatItem({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 28),
+        const Gap(8),
+        Text(value, style: AppTextStyles.h2.copyWith(color: color)),
+        const Gap(2),
+        Text(
+          label,
+          style: AppTextStyles.bodySmall.copyWith(
+            color:
+                isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
+          ),
+        ),
+      ],
     );
   }
 
@@ -217,11 +223,18 @@ class GroupsScreen extends ConsumerWidget {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('About Splity'),
-            content: const Text(
+            title: Row(
+              children: [
+                const Text('💸 '),
+                Text('About Splity', style: AppTextStyles.h3),
+              ],
+            ),
+            content: Text(
               'Splity is a smart bill splitter that helps you '
               'split expenses with friends and groups.\n\n'
-              'Built with Flutter, Clean Architecture, and Riverpod.',
+              'Built with Flutter, Clean Architecture, and Riverpod.\n\n'
+              'Version ${AppConstants.appVersion}',
+              style: AppTextStyles.bodyMedium,
             ),
             actions: [
               TextButton(
