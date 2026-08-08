@@ -6,6 +6,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/error_widget.dart';
+import '../../../../core/widgets/loading_widget.dart';
 import '../../../expenses/presentation/providers/expense_provider.dart';
 import '../../../expenses/presentation/widgets/expense_card.dart';
 import '../../domain/entities/group.dart';
@@ -14,7 +17,8 @@ import '../widgets/member_chip.dart';
 
 /// Screen that displays detailed information about a group.
 ///
-/// Shows group info, members, action buttons, and expenses list.
+/// Shows group info, members, expense stats,
+/// action buttons, and expenses list.
 class GroupDetailScreen extends ConsumerWidget {
   final String groupId;
 
@@ -29,51 +33,18 @@ class GroupDetailScreen extends ConsumerWidget {
     final group = groupState.groups.where((g) => g.id == groupId).firstOrNull;
 
     if (groupState.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: LoadingWidget(message: 'Loading group...'));
     }
 
     if (group == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.search_off_rounded,
-                size: 64,
-                color:
-                    isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondaryLight,
-              ),
-              const Gap(16),
-              Text(
-                'Group not found',
-                style: AppTextStyles.h3.copyWith(
-                  color:
-                      isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimaryLight,
-                ),
-              ),
-              const Gap(8),
-              Text(
-                'This group may have been deleted',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color:
-                      isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondaryLight,
-                ),
-              ),
-              const Gap(24),
-              ElevatedButton(
-                onPressed: () => context.pop(),
-                child: const Text('Go Back'),
-              ),
-            ],
-          ),
+        body: EmptyStateWidget(
+          icon: Icons.search_off_rounded,
+          title: 'Group not found',
+          subtitle: 'This group may have been deleted',
+          buttonLabel: 'Go Back',
+          onButtonPressed: () => context.pop(),
         ),
       );
     }
@@ -89,24 +60,94 @@ class GroupDetailScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // === GROUP HEADER ===
-          _buildHeader(context, group, isDark),
-          const Gap(24),
+      body: RefreshIndicator(
+        onRefresh:
+            () => ref.read(expenseNotifierProvider(groupId).notifier).refresh(),
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // === GROUP HEADER ===
+                  _buildHeader(context, group, isDark),
+                  const Gap(16),
 
-          // === MEMBERS SECTION ===
-          _buildMembersSection(context, group, isDark),
-          const Gap(24),
+                  // === EXPENSE STATS ===
+                  if (expenseState.hasExpenses) ...[
+                    _buildExpenseStats(expenseState, isDark),
+                    const Gap(16),
+                  ],
 
-          // === ACTION BUTTONS ===
-          _buildActionButtons(context, group, isDark),
-          const Gap(24),
+                  // === MEMBERS SECTION ===
+                  _buildMembersSection(context, group, isDark),
+                  const Gap(16),
 
-          // === EXPENSES SECTION ===
-          _buildExpensesSection(context, ref, group, expenseState, isDark),
-        ],
+                  // === ACTION BUTTONS ===
+                  _buildActionButtons(context, group, isDark),
+                  const Gap(24),
+
+                  // === EXPENSES HEADER ===
+                  _buildExpensesHeader(expenseState, isDark),
+                  const Gap(12),
+                ]),
+              ),
+            ),
+
+            // === EXPENSES LIST ===
+            if (expenseState.isLoading)
+              const SliverToBoxAdapter(
+                child: LoadingWidget(message: 'Loading expenses...'),
+              )
+            else if (expenseState.hasError)
+              SliverToBoxAdapter(
+                child: AppErrorWidget(
+                  message:
+                      expenseState.errorMessage ?? 'Failed to load expenses',
+                  onRetry:
+                      () =>
+                          ref
+                              .read(expenseNotifierProvider(groupId).notifier)
+                              .refresh(),
+                ),
+              )
+            else if (!expenseState.hasExpenses)
+              SliverToBoxAdapter(
+                child: EmptyStateWidget(
+                  icon: Icons.receipt_long_outlined,
+                  title: 'No expenses yet',
+                  subtitle: 'Add your first expense to start tracking',
+                  buttonLabel: 'Add Expense',
+                  onButtonPressed:
+                      () => context.push(
+                        '/group/${group.id}/add-expense',
+                        extra: group,
+                      ),
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final expense = expenseState.expenses[index];
+                  return ExpenseCard(
+                    expense: expense,
+                    onTap:
+                        () => context.push(
+                          '/group/$groupId/expense/${expense.id}',
+                        ),
+                    onDelete: () async {
+                      await ref
+                          .read(expenseNotifierProvider(groupId).notifier)
+                          .removeExpense(expense.id);
+                    },
+                  );
+                }, childCount: expenseState.expenses.length),
+              ),
+
+            // === BOTTOM PADDING FOR FAB ===
+            const SliverToBoxAdapter(child: Gap(100)),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed:
@@ -123,16 +164,16 @@ class GroupDetailScreen extends ConsumerWidget {
         child: Column(
           children: [
             Container(
-              width: 80,
-              height: 80,
+              width: 72,
+              height: 72,
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(18),
               ),
               alignment: Alignment.center,
-              child: Text(group.emoji, style: const TextStyle(fontSize: 40)),
+              child: Text(group.emoji, style: const TextStyle(fontSize: 36)),
             ),
-            const Gap(16),
+            const Gap(12),
             Text(
               group.name,
               style: AppTextStyles.h2.copyWith(
@@ -144,7 +185,7 @@ class GroupDetailScreen extends ConsumerWidget {
               textAlign: TextAlign.center,
             ),
             if (group.description.isNotEmpty) ...[
-              const Gap(8),
+              const Gap(6),
               Text(
                 group.description,
                 style: AppTextStyles.bodyMedium.copyWith(
@@ -205,6 +246,72 @@ class GroupDetailScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildExpenseStats(ExpenseState expenseState, bool isDark) {
+    return Card(
+      color: AppColors.primary.withValues(alpha: 0.05),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildStatItem(
+                label: 'Expenses',
+                value: '${expenseState.expenses.length}',
+                icon: Icons.receipt_rounded,
+                color: AppColors.primary,
+                isDark: isDark,
+              ),
+            ),
+            Container(
+              width: 1,
+              height: 40,
+              color: (isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight)
+                  .withValues(alpha: 0.2),
+            ),
+            Expanded(
+              child: _buildStatItem(
+                label: 'Total Spent',
+                value:
+                    '${AppConstants.currency}${expenseState.totalAmount.toStringAsFixed(0)}',
+                icon: Icons.currency_rupee_rounded,
+                color: AppColors.secondary,
+                isDark: isDark,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatItem({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 24),
+        const Gap(6),
+        Text(value, style: AppTextStyles.h3.copyWith(color: color)),
+        const Gap(2),
+        Text(
+          label,
+          style: AppTextStyles.bodySmall.copyWith(
+            color:
+                isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildMembersSection(BuildContext context, Group group, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,178 +335,59 @@ class GroupDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildActionButtons(BuildContext context, Group group, bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Text(
-          'Actions',
-          style: AppTextStyles.h3.copyWith(
-            color:
-                isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+        Expanded(
+          child: _ActionCard(
+            icon: Icons.add_circle_outline_rounded,
+            label: 'Add Expense',
+            color: AppColors.primary,
+            isDark: isDark,
+            onTap:
+                () => context.push(
+                  '/group/${group.id}/add-expense',
+                  extra: group,
+                ),
           ),
         ),
         const Gap(12),
-        Row(
-          children: [
-            Expanded(
-              child: _ActionCard(
-                icon: Icons.add_circle_outline_rounded,
-                label: 'Add Expense',
-                color: AppColors.primary,
-                isDark: isDark,
-                onTap:
-                    () => context.push(
-                      '/group/${group.id}/add-expense',
-                      extra: group,
-                    ),
-              ),
-            ),
-            const Gap(12),
-            Expanded(
-              child: _ActionCard(
-                icon: Icons.account_balance_wallet_outlined,
-                label: 'Settlement',
-                color: AppColors.secondary,
-                isDark: isDark,
-                onTap: () => context.push('/group/${group.id}/settlement'),
-              ),
-            ),
-          ],
+        Expanded(
+          child: _ActionCard(
+            icon: Icons.account_balance_wallet_outlined,
+            label: 'Settlement',
+            color: AppColors.secondary,
+            isDark: isDark,
+            onTap: () => context.push('/group/${group.id}/settlement'),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildExpensesSection(
-    BuildContext context,
-    WidgetRef ref,
-    Group group,
-    ExpenseState expenseState,
-    bool isDark,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildExpensesHeader(ExpenseState expenseState, bool isDark) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // === HEADER ROW ===
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Expenses',
-              style: AppTextStyles.h3.copyWith(
-                color:
-                    isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimaryLight,
-              ),
-            ),
-            if (expenseState.hasExpenses)
-              Text(
-                'Total: ${AppConstants.currency}${expenseState.totalAmount.toStringAsFixed(2)}',
-                style: AppTextStyles.labelMedium.copyWith(
-                  color: AppColors.primary,
-                ),
-              ),
-          ],
+        Text(
+          'Expenses',
+          style: AppTextStyles.h3.copyWith(
+            color:
+                isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+          ),
         ),
-        const Gap(12),
-
-        // === LOADING STATE ===
-        if (expenseState.isLoading)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: CircularProgressIndicator(),
+        if (expenseState.hasExpenses)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-          )
-        // === ERROR STATE ===
-        else if (expenseState.hasError)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  const Icon(
-                    Icons.error_outline_rounded,
-                    size: 48,
-                    color: AppColors.error,
-                  ),
-                  const Gap(12),
-                  Text(
-                    expenseState.errorMessage ?? 'Something went wrong',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color:
-                          isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const Gap(16),
-                  ElevatedButton.icon(
-                    onPressed:
-                        () =>
-                            ref
-                                .read(expenseNotifierProvider(groupId).notifier)
-                                .refresh(),
-                    icon: const Icon(Icons.refresh_rounded),
-                    label: const Text('Try Again'),
-                  ),
-                ],
+            child: Text(
+              'Total: ${AppConstants.currency}${expenseState.totalAmount.toStringAsFixed(2)}',
+              style: AppTextStyles.labelSmall.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
               ),
-            ),
-          )
-        // === EMPTY STATE ===
-        else if (!expenseState.hasExpenses)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.receipt_long_outlined,
-                    size: 48,
-                    color:
-                        isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondaryLight,
-                  ),
-                  const Gap(12),
-                  Text(
-                    'No expenses yet',
-                    style: AppTextStyles.labelLarge.copyWith(
-                      color:
-                          isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimaryLight,
-                    ),
-                  ),
-                  const Gap(4),
-                  Text(
-                    'Add your first expense to start tracking',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color:
-                          isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )
-        // === EXPENSES LIST ===
-        else
-          ...expenseState.expenses.map(
-            (expense) => ExpenseCard(
-              expense: expense,
-              onTap:
-                  () => context.push('/group/$groupId/expense/${expense.id}'),
-              onDelete: () async {
-                await ref
-                    .read(expenseNotifierProvider(groupId).notifier)
-                    .removeExpense(expense.id);
-              },
             ),
           ),
       ],
