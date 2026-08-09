@@ -240,7 +240,7 @@ Run with coverage:
 - [x] Share summary feature
 - [x] Theme toggle (light/dark mode)
 - [x] Unit tests (47 tests passing)
-- [ ] UI polish & animations
+- [x] UI polish & animations
 
 ---
 
